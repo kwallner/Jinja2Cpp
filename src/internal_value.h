@@ -160,6 +160,7 @@ struct IListAccessor
 
     virtual size_t GetSize() const = 0;
     virtual InternalValue GetValueByIndex(int64_t idx) const = 0;
+    virtual GenericList CreateGenericList() const = 0;
 };
 
 using ListAccessorProvider = std::function<const IListAccessor*()>;
@@ -170,6 +171,7 @@ struct IMapAccessor : public IListAccessor
     virtual InternalValue GetValueByName(const std::string& name) const = 0;
     virtual std::vector<std::string> GetKeys() const = 0;
     virtual bool SetValue(std::string name, const InternalValue& val) {return false;}
+    virtual GenericMap CreateGenericMap() const = 0;
 };
 
 using MapAccessorProvider = std::function<IMapAccessor*()>;
@@ -204,6 +206,13 @@ public:
 
     ListAdapter ToSubscriptedList(const InternalValue& subscript, bool asRef = false) const;
     InternalValueList ToValueList() const;
+    GenericList CreateGenericList() const
+    {
+        if (m_accessorProvider && m_accessorProvider)
+            return m_accessorProvider()->CreateGenericList();
+
+        return GenericList();
+    }
 
     class Iterator;
 
@@ -264,6 +273,13 @@ public:
         }
 
         return false;
+    }
+    GenericMap CreateGenericMap() const
+    {
+        if (m_accessorProvider && m_accessorProvider())
+            return m_accessorProvider()->CreateGenericMap();
+
+        return GenericMap();
     }
 
 private:
