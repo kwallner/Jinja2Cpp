@@ -180,7 +180,7 @@ public:
     ListAdapter() {}
     explicit ListAdapter(ListAccessorProvider prov) : m_accessorProvider(std::move(prov)) {}
     ListAdapter(const ListAdapter&) = default;
-    ListAdapter(ListAdapter&&) = default;
+    ListAdapter(ListAdapter&&) noexcept = default;
 
     static ListAdapter CreateAdapter(InternalValueList&& values);
     static ListAdapter CreateAdapter(const GenericList& values);

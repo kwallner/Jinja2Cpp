@@ -157,7 +157,11 @@ template<typename T>
 class ByVal
 {
 public:
-    ByVal(T&& val)
+    ByVal(const T& val) noexcept
+        : m_val(val)
+    {}
+    
+    ByVal(T&& val) noexcept
         : m_val(std::move(val))
     {}
     ~ByVal()
@@ -175,7 +179,7 @@ class GenericListAdapter : public IListAccessor
 {
 public:
     template<typename U>
-    GenericListAdapter(U&& values) : m_values(std::forward<U>(values)) {}
+    GenericListAdapter(U&& values) noexcept : m_values(std::forward<U>(values)) {}
 
     size_t GetSize() const override {return m_values.Get().GetSize();}
     InternalValue GetValueByIndex(int64_t idx) const override
@@ -233,7 +237,7 @@ ListAdapter ListAdapter::CreateAdapter(const ValuesList& values)
 
 ListAdapter ListAdapter::CreateAdapter(GenericList&& values)
 {
-    return ListAdapter([accessor = GenericListAdapter<ByVal>(std::move(values))]() {return &accessor;});
+    return ListAdapter([accessor = GenericListAdapter<ByVal>(values)]() {return &accessor;});
 }
 
 ListAdapter ListAdapter::CreateAdapter(ValuesList&& values)
@@ -342,9 +346,9 @@ InternalValue Value2IntValue(Value&& val)
 {
     auto result = nonstd::visit(visitors::InputValueConvertor(true), val.data());
     if (result)
-        return result.get();
+        return std::move(result.get());
 
-    return InternalValue(ValueRef(val));
+    return InternalValue();
 }
 
 template<template<typename> class Holder>

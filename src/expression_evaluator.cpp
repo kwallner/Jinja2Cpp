@@ -55,7 +55,10 @@ InternalValue ValueRefExpression::Evaluate(RenderContext& values)
 
 InternalValue SubscriptExpression::Evaluate(RenderContext& values)
 {
-    return Subscript(m_value->Evaluate(values), m_subscriptExpr->Evaluate(values));
+    const InternalValue& obj = m_value->Evaluate(values);
+    const InternalValue& index = m_subscriptExpr->Evaluate(values);
+    auto result = Subscript(obj, index);
+    return result;
 }
 
 InternalValue UnaryExpression::Evaluate(RenderContext& values)
