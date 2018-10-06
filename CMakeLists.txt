@@ -1,45 +1,18 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(Jinja2Cpp VERSION 0.5.0)
+project(Jinja2Cpp VERSION 0.9.0)
+
+# Requirements
+find_package(expected_lite REQUIRED)
+find_package(variant_lite REQUIRED)
+find_package(value_ptr_lite REQUIRED)
+find_package(optional_lite REQUIRED)
+find_package(Boost 1.65 REQUIRED COMPONENTS filesystem)
+
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    if (NOT UNIX)
-        set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wa,-mbig-obj")
-    endif ()
-else ()
-    set (COMMON_MSVC_OPTS "/wd4503 /DBOOST_ALL_NO_LIB")
-
-    # MSVC
-    if (NOT DEFINED MSVC_RUNTIME_TYPE)
-        set (MSVC_RUNTIME_TYPE "/MD")
-        set (gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    endif ()
-    if (CMAKE_BUILD_TYPE MATCHES "Debug")
-        set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${MSVC_RUNTIME_TYPE}d ${COMMON_MSVC_OPTS}")
-        set (Boost_USE_DEBUG_RUNTIME ON)
-    else ()
-        set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${MSVC_RUNTIME_TYPE}  ${COMMON_MSVC_OPTS}")
-        set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${MSVC_RUNTIME_TYPE} ${COMMON_MSVC_OPTS}")
-        set (CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/PROFILE")
-        set (Boost_USE_DEBUG_RUNTIME OFF)
-    endif ()
-
-endif()
-
-set(BOOST_CMAKE_LIBRARIES filesystem algorithm variant optional CACHE INTERNAL "")
-add_subdirectory(thirdparty/boost EXCLUDE_FROM_ALL)
-add_subdirectory(thirdparty/nonstd EXCLUDE_FROM_ALL)
-
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(JINJA2CPP_IS_MAIN_PROEJCT TRUE)
-else()
-    set(JINJA2CPP_IS_MAIN_PROEJCT FALSE)
-endif()
-
-option(JINJA2CPP_BUILD_TESTS "Build Jinja2Cpp unit tests" ${JINJA2CPP_IS_MAIN_PROEJCT})
+set(JINJA2CPP_IS_MAIN_PROEJCT TRUE)
+#option(JINJA2CPP_BUILD_TESTS "Build Jinja2Cpp unit tests" ${JINJA2CPP_IS_MAIN_PROEJCT})
 
 include(collect_sources)
 
@@ -54,10 +27,10 @@ add_library(${LIB_TARGET_NAME} STATIC
     ${PublicHeaders}
     )
 
-target_link_libraries(${LIB_TARGET_NAME} PUBLIC ThirdParty::nonstd boost_variant boost_filesystem boost_algorithm)
+target_link_libraries(${LIB_TARGET_NAME} PUBLIC expected_lite variant_lite value_ptr_lite optional_lite Boost::boost Boost::filesystem Boost::disable_autolinking)
 
 target_include_directories(${LIB_TARGET_NAME}
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>" "$<INSTALL_INTERFACE:include>")
 
 
 if(NOT MSVC)
@@ -82,11 +55,11 @@ endif()
 
 if (JINJA2CPP_BUILD_TESTS)
     enable_testing()
-    add_subdirectory(thirdparty/gtest)
-
+    find_package(GTest REQUIRED)
+    
     CollectSources(TestSources TestHeaders ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test)
     add_executable(jinja2cpp_tests ${TestSources} ${TestHeaders})
-    target_link_libraries(jinja2cpp_tests gtest gtest_main ${LIB_TARGET_NAME} ${EXTRA_TEST_LIBS})
+    target_link_libraries(jinja2cpp_tests GTest::Main GTest::GTest ${LIB_TARGET_NAME})
 
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test_data/simple_template1.j2tpl
@@ -108,7 +81,43 @@ install(TARGETS ${LIB_TARGET_NAME}
         ARCHIVE DESTINATION lib/static)
 
 install (DIRECTORY include/ DESTINATION include)
-install (DIRECTORY thirdparty/nonstd/expected-light/include/ DESTINATION include)
-install (DIRECTORY thirdparty/nonstd/variant-light/include/ DESTINATION include)
-install (DIRECTORY thirdparty/nonstd/value-ptr-light/include/ DESTINATION include)
-install (FILES cmake/public/FindJinja2Cpp.cmake DESTINATION cmake)
+
+#
+# Create Config Files
+#
+install(TARGETS ${LIB_TARGET_NAME}
+    EXPORT Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+    )
+
+install(EXPORT Targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    DESTINATION share/cmake/${PROJECT_NAME}
+    )
+
+#
+# Export Library
+#
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMinorVersion
+    )
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/public/LibraryConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    @ONLY
+    )
+
+install(
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    DESTINATION
+        . # Root Directory
+    )

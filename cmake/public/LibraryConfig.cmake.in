@@ -1,0 +1,10 @@
+include(CMakeFindDependencyMacro)
+
+# Requirements
+find_package(expected_lite REQUIRED)
+find_package(variant_lite REQUIRED)
+find_package(value_ptr_lite REQUIRED)
+find_package(optional_lite REQUIRED)
+find_package(Boost 1.65 REQUIRED COMPONENTS filesystem)
+
+include("${CMAKE_CURRENT_LIST_DIR}/share/cmake/@PROJECT_NAME@/@PROJECT_NAME@Targets.cmake")
