@@ -24,6 +24,7 @@ class Jinja2CppConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
+        cmake.definitions["JINJA2CPP_BUILD_TESTS"] = True
         cmake.configure()
         cmake.build()
         cmake.install()

@@ -12,7 +12,7 @@ find_package(Boost 1.65 REQUIRED COMPONENTS filesystem)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(JINJA2CPP_IS_MAIN_PROEJCT TRUE)
-#option(JINJA2CPP_BUILD_TESTS "Build Jinja2Cpp unit tests" ${JINJA2CPP_IS_MAIN_PROEJCT})
+option(JINJA2CPP_BUILD_TESTS "Build Jinja2Cpp unit tests" ${JINJA2CPP_IS_MAIN_PROEJCT})
 
 include(collect_sources)
 
